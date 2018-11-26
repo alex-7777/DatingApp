@@ -29,4 +29,10 @@ getUser(id): Observable<User> {
   // return this.http.get<User>(this.baseUrl + 'user/' + id, httpOptions); // Simple way of sending token within a header
 }
 
+updateUser(id: number, user: User) {
+  return this.http.put(this.baseUrl + 'users/' + id, user);
+}
+
+
+
 }

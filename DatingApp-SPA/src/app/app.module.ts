@@ -24,6 +24,9 @@ import { UserService } from './_services/user.service';
 import { MembersCardComponent } from './members/members-card/members-card.component';
 import { MemberDetailComponent } from './members/member-detail/member-detail.component';
 import { MemberDetailResolver } from './_resolves/member-detail.resolver';
+import { MemberEditComponent } from './members/member-edit/member-edit.component';
+import { MemberEditResolver } from './_resolves/member-edit.resolver';
+import { PreventUnsavedChanges } from './_guards/prevent-unsaved-changes.guard';
 
 // Prepare a token for sending alway within a header
 // For more information see: https://github.com/auth0/angular2-jwt
@@ -41,7 +44,8 @@ export function tokenGetter() {
       ListsComponent,
       MessagesComponent,
       MembersCardComponent,
-      MemberDetailComponent
+      MemberDetailComponent,
+      MemberEditComponent
    ],
    imports: [
       BrowserModule,
@@ -66,7 +70,9 @@ export function tokenGetter() {
       AlertifyService,
       AuthGuard,
       UserService,
-      MemberDetailResolver
+      MemberDetailResolver,
+      MemberEditResolver,
+      PreventUnsavedChanges
    ],
    bootstrap: [
       AppComponent
