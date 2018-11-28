@@ -3,6 +3,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 using System.Threading.Tasks;
+using AutoMapper;
 using DatingApp.API.Data;
 using DatingApp.API.Dtos;
 using DatingApp.API.Models;
@@ -18,11 +19,13 @@ namespace DatingApp.API.Controllers
     {
         private readonly IAuthRepository _repo;
         private readonly IConfiguration _config;
+        private readonly IMapper _mapper;
 
-        public AuthController (IAuthRepository repo, IConfiguration config) 
+        public AuthController (IAuthRepository repo, IConfiguration config, IMapper mapper) 
         {
             _repo = repo;
             _config = config;
+            _mapper = mapper;
         }              
 
         [HttpPost ("register")]
@@ -46,10 +49,10 @@ namespace DatingApp.API.Controllers
         }
 
         [HttpPost ("login")]
-        public async Task<IActionResult> Login (UserForLoginDto userForLoginDto) 
+        public async Task<IActionResult> Login (UserForLoginDto userForLoginDto)
         {
             // 1. Check if the given user (name+password) exists in the database
-            var userFromRepo = await _repo.Login (userForLoginDto.Username.ToLower (), userForLoginDto.Password);
+            var userFromRepo = await _repo.Login(userForLoginDto.Username.ToLower (), userForLoginDto.Password);
             // if not, return Unauthorized without given a Hint about the reason (no info regarding what is wrong - name or password)
             if (userFromRepo == null) return Unauthorized ();
 
@@ -82,9 +85,13 @@ namespace DatingApp.API.Controllers
             // 2.3(c) Create TOKEN object by using the Token handler and passing the tokenDescriptor object
             var token = tokenHandler.CreateToken (tokenDescriptor);
 
-            // 3. Return JWT token to the client, so that it can be used or the authentication for any further requests
+            // 3. Prepare a user along with URL for a photo as part of a result (not inside a token!)
+            var user = _mapper.Map<UserForListDto>(userFromRepo);
+
+            // 4. Return JWT token to the client, so that it can be used or the authentication for any further requests
             return Ok (new {
-                token = tokenHandler.WriteToken (token)
+                token = tokenHandler.WriteToken (token),
+                user // return user object as well in order to have acces to a photo for the navbar
             });
         }
     }
