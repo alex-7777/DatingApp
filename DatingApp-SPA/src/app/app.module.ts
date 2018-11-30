@@ -24,6 +24,7 @@ import { AuthGuard } from './_guards/auth.guard';
 import { UserService } from './_services/user.service';
 import { MembersCardComponent } from './members/members-card/members-card.component';
 import { ListsComponent } from './lists/lists.component';
+import { ListsResolver } from './_resolves/lists.resolver';
 import { MemberListResolver } from './_resolves/member-list.resolver';
 import { MemberDetailComponent } from './members/member-detail/member-detail.component';
 import { MemberDetailResolver } from './_resolves/member-detail.resolver';
@@ -81,6 +82,7 @@ export function tokenGetter() {
       AlertifyService,
       AuthGuard,
       UserService,
+      ListsResolver,
       MemberListResolver,
       MemberDetailResolver,
       MemberEditResolver,
