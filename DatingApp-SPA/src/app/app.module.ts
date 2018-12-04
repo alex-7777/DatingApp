@@ -32,6 +32,8 @@ import { MemberEditComponent } from './members/member-edit/member-edit.component
 import { MemberEditResolver } from './_resolves/member-edit.resolver';
 import { PreventUnsavedChanges } from './_guards/prevent-unsaved-changes.guard';
 import { PhotoEditorComponent } from './members/photo-editor/photo-editor.component';
+import { MessagesResolver } from './_resolves/messages.resolver';
+import { MemberMessagesComponent } from './members/member-messages/member-messages.component';
 
 // Prepare a token for sending alway within a header
 // For more information see: https://github.com/auth0/angular2-jwt
@@ -51,6 +53,7 @@ export function tokenGetter() {
       MembersCardComponent,
       MemberDetailComponent,
       MemberEditComponent,
+      MemberMessagesComponent,
       PhotoEditorComponent,
       TimeAgoPipe
    ],
@@ -86,6 +89,7 @@ export function tokenGetter() {
       MemberListResolver,
       MemberDetailResolver,
       MemberEditResolver,
+      MessagesResolver,
       PreventUnsavedChanges
    ],
    bootstrap: [
