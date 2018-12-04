@@ -11,5 +11,15 @@
     <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="2.1.4"/>
     <PackageReference Include="AutoMapper.Extensions.Microsoft.DependencyInjection" Version="6.0.0"/>
     <PackageReference Include="CloudinaryDotNet" Version="1.5.0"/>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="2.1.4"/>
   </ItemGroup>
 </Project>
+
+
+<!-- Installing a new DB Provider
+
+https://docs.microsoft.com/en-us/ef/core/providers/ 
+Provider: 
+Microsoft.EntityFrameworkCore.SqlServer
+https://www.nuget.org/packages/Microsoft.EntityFrameworkCore.SqlServer
+Install-Package Microsoft.EntityFrameworkCore.SqlServer -Version 2.1.4 -->
