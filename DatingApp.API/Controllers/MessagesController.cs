@@ -15,7 +15,7 @@ using Microsoft.EntityFrameworkCore;
 namespace DatingApp.API.Controllers
 {
     [ServiceFilter(typeof(LogUserActivity))]
-    [Authorize]
+    // [Authorize] // Not required here, because it has been configured globally within the Startup
     [Route ("api/users/{userId}/[controller]")]
     [ApiController]
     public class MessagesController : ControllerBase

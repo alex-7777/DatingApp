@@ -7,25 +7,34 @@ using AutoMapper;
 using DatingApp.API.Data;
 using DatingApp.API.Dtos;
 using DatingApp.API.Models;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 
 namespace DatingApp.API.Controllers 
 {
+    [AllowAnonymous] // Specifically allow, because [Authorize] is required globally within the Startup
     [Route ("api/[controller]")]
     [ApiController]
     public class AuthController : ControllerBase 
     {
-        private readonly IAuthRepository _repo;
+        private readonly UserManager<User> _userManager; // Identity Manager
+        private readonly SignInManager<User> _signInManager; // Identity Manager
         private readonly IConfiguration _config;
         private readonly IMapper _mapper;
 
-        public AuthController (IAuthRepository repo, IConfiguration config, IMapper mapper) 
+        public AuthController (IConfiguration config, 
+            IMapper mapper, 
+            UserManager<User> userManager,
+            SignInManager<User> signInManager) 
         {
-            _repo = repo;
+            _userManager = userManager;
+            _signInManager = signInManager;
             _config = config;
-            _mapper = mapper;
+            _mapper = mapper;            
         }              
 
         [HttpPost ("register")]
@@ -35,34 +44,65 @@ namespace DatingApp.API.Controllers
             // validate request not required, because it is already done with [ApiController] attribute  
             // if (!ModelState.IsValid) return BadRequest(ModelState);  // Checking validation whether passed data with UserForRegisterDto is valid - means checking [Required] or [StringLength] fields / given values.
 
-            userForRegisterDto.Username = userForRegisterDto.Username.ToLower ();
-
-            if (await _repo.UserExists (userForRegisterDto.Username)) return BadRequest ("Username already exists");
+            // Not required, because it is already being checked by Identity
+            // userForRegisterDto.Username = userForRegisterDto.Username.ToLower();
+            // if (await _repo.UserExists (userForRegisterDto.Username)) return BadRequest ("Username already exists");
 
             var userToCreate = _mapper.Map<User>(userForRegisterDto);
 
-            var createdUser = await _repo.Register (userToCreate, userForRegisterDto.Password);
+            var result = await _userManager.CreateAsync(userToCreate, userForRegisterDto.Password);
 
-            var userToReturn = _mapper.Map<UserForDetailedDto>(createdUser);
+            // Not required, because it is already being checked by Identity
+            // var createdUser = await _repo.Register (userToCreate, userForRegisterDto.Password);
 
-            //return StatusCode (201); // fix later to CreatedAtRoute
-            return CreatedAtRoute("GetUser", new {contoller = "Users", id = createdUser.Id}, userToReturn);
+            var userToReturn = _mapper.Map<UserForDetailedDto>(userToCreate);
+
+            if (result.Succeeded)
+            {
+                return CreatedAtRoute("GetUser", 
+                new {contoller = "Users", id = userToCreate.Id}, userToReturn);
+            }
+
+            return BadRequest(result.Errors);
         }
 
         [HttpPost ("login")]
         public async Task<IActionResult> Login (UserForLoginDto userForLoginDto)
         {
             // 1. Check if the given user (name+password) exists in the database
-            var userFromRepo = await _repo.Login(userForLoginDto.Username.ToLower (), userForLoginDto.Password);
+            // var userFromRepo = await _repo.Login(userForLoginDto.Username.ToLower (), userForLoginDto.Password);
             // if not, return Unauthorized without given a Hint about the reason (no info regarding what is wrong - name or password)
-            if (userFromRepo == null) return Unauthorized ();
+            // if (userFromRepo == null) return Unauthorized ();
 
-            // 2. Build Token
+            // Instead, get a user using Identity
+            var user = await _userManager.FindByNameAsync(userForLoginDto.Username); // There are also other methods to find a user available
+            var result = await _signInManager
+                .CheckPasswordSignInAsync(user, userForLoginDto.Password, false); // use true in productive to lockout a user                     
 
+            if (result.Succeeded)
+            {
+                var appUser = await _userManager.Users.Include(p => p.Photos)
+                    .FirstOrDefaultAsync(u => u.NormalizedUserName == userForLoginDto.Username.ToUpper());
+
+                // Prepare a user along with URL for a photo as part of a result (not inside a token!)
+                var userToReturn = _mapper.Map<UserForListDto>(appUser);
+
+                // Return JWT token to the client, so that it can be used or the authentication for any further requests
+                return Ok (new {
+                    token = GenerateJwtToken(appUser), // Build Token
+                    user = userToReturn // return user object as well in order to have acces to a photo for the navbar
+                });
+            }                  
+
+            return Unauthorized();
+        }
+
+        private string GenerateJwtToken(User user)
+        {
             // 2.1 Create claims (id, name) - type of the claim along with the value from the database
             var claims = new [] {
-                new Claim (ClaimTypes.NameIdentifier, userFromRepo.Id.ToString ()),
-                new Claim (ClaimTypes.Name, userFromRepo.Username)
+                new Claim (ClaimTypes.NameIdentifier, user.Id.ToString()),
+                new Claim (ClaimTypes.Name, user.UserName)
             };
 
             // 2.2 In order to make sure that a token is valid, when it comes back, the server needs to SIGN this token.
@@ -86,14 +126,8 @@ namespace DatingApp.API.Controllers
             // 2.3(c) Create TOKEN object by using the Token handler and passing the tokenDescriptor object
             var token = tokenHandler.CreateToken (tokenDescriptor);
 
-            // 3. Prepare a user along with URL for a photo as part of a result (not inside a token!)
-            var user = _mapper.Map<UserForListDto>(userFromRepo);
-
-            // 4. Return JWT token to the client, so that it can be used or the authentication for any further requests
-            return Ok (new {
-                token = tokenHandler.WriteToken (token),
-                user // return user object as well in order to have acces to a photo for the navbar
-            });
+            // Return the token string
+            return tokenHandler.WriteToken(token);
         }
     }
 }

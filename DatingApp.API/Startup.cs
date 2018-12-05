@@ -7,13 +7,17 @@ using System.Threading.Tasks;
 using AutoMapper;
 using DatingApp.API.Data;
 using DatingApp.API.Helpers;
+using DatingApp.API.Models;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.HttpsPolicy;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Configuration;
@@ -41,19 +45,25 @@ namespace DatingApp.API
             services.AddDbContext<DataContext>(x => x.
                 UseSqlServer(Configuration.GetConnectionString("DefaultConnection"))
                     .ConfigureWarnings(warnings => warnings.Ignore(CoreEventId.IncludeIgnoredWarning)));
-            services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_1)
-            .AddJsonOptions(opt => {
-                // Necessary if getting an error: JsonSerializationException: Self referencing loop detected for property 'user'
-                opt.SerializerSettings.ReferenceLoopHandling = 
-                Newtonsoft.Json.ReferenceLoopHandling.Ignore;
+
+            // Configuring Identity (use IdentityCore and not a full package for Razor View called Identity)
+            IdentityBuilder builder = services.AddIdentityCore<User>(opt => {
+                // Not recommended for productive app for security reasons, just for this curse for testing purpose
+                opt.Password.RequireDigit = false;
+                opt.Password.RequiredLength = 4;
+                opt.Password.RequireNonAlphanumeric = false;
+                opt.Password.RequireUppercase = false;
             });
-            services.AddCors();
-            services.Configure<CloudinarySettings>(Configuration.GetSection("CloudinarySettings"));
-            services.AddAutoMapper();
-            services.AddTransient<Seed>();
-            services.AddScoped<IAuthRepository, AuthRepository>();
-            services.AddScoped<IDatingRepository, DatingRepository>();
-            services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme) // Configure authentication middleware in order to check provided JWT token
+            // In the second part, create a new intance and pass the parameters with it. 
+            // And connecth with the DataContext and configure the IdentityCore sub-services           
+            builder = new IdentityBuilder(builder.UserType, typeof(Role), builder.Services);
+            builder.AddEntityFrameworkStores<DataContext>();
+            builder.AddRoleValidator<RoleValidator<Role>>();
+            builder.AddRoleManager<RoleManager<Role>>();
+            builder.AddSignInManager<SignInManager<User>>();
+            
+            // Configure authentication middleware in order to check provided JWT token
+            services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                 .AddJwtBearer(options => {
                     options.TokenValidationParameters = new TokenValidationParameters
                     {
@@ -63,6 +73,29 @@ namespace DatingApp.API
                         ValidateAudience = false
                     };
                 });
+            
+            // Configuration of MVC and other must-have services
+            // Add options to require any request to be authenticated, rather than using [Authorize] attribute in every api controller
+            services.AddMvc(options => 
+            {
+                var policy = new AuthorizationPolicyBuilder()
+                    .RequireAuthenticatedUser() // Require Authentication globally!
+                    .Build();
+                options.Filters.Add(new AuthorizeFilter(policy));                
+            })
+                .SetCompatibilityVersion(CompatibilityVersion.Version_2_1)
+                .AddJsonOptions(opt => {
+                // Necessary if getting an error: JsonSerializationException: Self referencing loop detected for property 'user'
+                opt.SerializerSettings.ReferenceLoopHandling = 
+                Newtonsoft.Json.ReferenceLoopHandling.Ignore;
+            });
+            services.AddCors();
+            services.Configure<CloudinarySettings>(Configuration.GetSection("CloudinarySettings"));
+            // Mapper.Reset(); // Only required in development mode if problems with EF core (e.g. Drop database doesnt work)             
+            services.AddAutoMapper();
+            services.AddTransient<Seed>();
+            // services.AddScoped<IAuthRepository, AuthRepository>(); // Not required, because Identity is in use
+            services.AddScoped<IDatingRepository, DatingRepository>();            
             services.AddScoped<LogUserActivity>();
         }   
 
@@ -91,7 +124,7 @@ namespace DatingApp.API
             }
 
             // app.UseHttpsRedirection();
-            // seeder.SeedUsers(); // Activate for new seeding if nessesary. Only in development mode.
+            seeder.SeedUsers(); // Activate for new seeding if nessesary. Only in development mode.
             // app.UseCors(x => x.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader());
             app.UseCors(x => x.WithOrigins("http://localhost:4200").AllowAnyMethod().AllowAnyHeader());
             app.UseAuthentication(); // Add authentication middleware (will check requests on all api controllers "marked" with [Authorize] attribute )

@@ -17,7 +17,7 @@ using Microsoft.Extensions.Options;
 
 namespace DatingApp.API.Controllers 
 {
-    [Authorize]
+    // [Authorize] // Not required here, because it has been configured globally within the Startup
     [Route ("api/users/{userId}/photos")]
     [ApiController]
     public class PhotosController : ControllerBase 
