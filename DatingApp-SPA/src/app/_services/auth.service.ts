@@ -49,4 +49,19 @@ export class AuthService {
     // Angular JWT 2+ helper service V2.0 is used for this: npm install @auth0/angular-jwt
     return !this.jwtHelper.isTokenExpired(token);
   }
+
+  // Enhance Route Guard, by checing the allowed roles within the token on the client side
+  // Note: This can be manipulated on the client side, however no data will be sent back.
+  roleMatch(allowedRoles): boolean {
+    let isMatch = false;
+    const userRoles = this.decodedToken.role as Array<string>;
+    allowedRoles.forEach(element => {
+      if (userRoles.includes(element)) {
+        isMatch = true;
+        return;
+      }
+    });
+    return isMatch;
+  }
+
 }

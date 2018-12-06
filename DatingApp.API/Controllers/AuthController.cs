@@ -90,7 +90,8 @@ namespace DatingApp.API.Controllers
 
                 // Return JWT token to the client, so that it can be used or the authentication for any further requests
                 return Ok (new {
-                    token = await GenerateJwtToken(appUser), // Build Token
+                    // token = await GenerateJwtToken(appUser), // Build Token
+                    token = GenerateJwtToken(appUser).Result, // Build Token
                     user = userToReturn // return user object as well in order to have acces to a photo for the navbar
                 });
             }                  
