@@ -1,4 +1,5 @@
 using System;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
@@ -32,5 +33,17 @@ namespace DatingApp.API.Helpers
             }
             return age;
         }
+
+        // Temp Test Extension for Policy
+        // public AuthorizationPolicyBuilder RequireRole(params string[] roles);
+        // public static AuthorizationPolicyBuilder RequireMyCustomPermission(this AuthorizationPolicyBuilder builder) // , params string[] roles)
+        // {
+        //     var policy = new AuthorizationPolicyBuilder()
+        //             .RequireAuthenticatedUser()
+        //             .AddRequirements()
+        //             .Build();
+
+        //     return builder.RequireRole(roles);
+        // }
     }
 }

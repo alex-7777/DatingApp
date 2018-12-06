@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
@@ -89,7 +90,7 @@ namespace DatingApp.API.Controllers
 
                 // Return JWT token to the client, so that it can be used or the authentication for any further requests
                 return Ok (new {
-                    token = GenerateJwtToken(appUser), // Build Token
+                    token = await GenerateJwtToken(appUser), // Build Token
                     user = userToReturn // return user object as well in order to have acces to a photo for the navbar
                 });
             }                  
@@ -97,13 +98,21 @@ namespace DatingApp.API.Controllers
             return Unauthorized();
         }
 
-        private string GenerateJwtToken(User user)
+        private async Task<string> GenerateJwtToken(User user)
         {
             // 2.1 Create claims (id, name) - type of the claim along with the value from the database
-            var claims = new [] {
+            var claims = new List<Claim>
+            {
                 new Claim (ClaimTypes.NameIdentifier, user.Id.ToString()),
                 new Claim (ClaimTypes.Name, user.UserName)
             };
+
+            var roles = await _userManager.GetRolesAsync(user);
+
+            foreach (var role in roles)
+            {
+                claims.Add(new Claim(ClaimTypes.Role, role));
+            }
 
             // 2.2 In order to make sure that a token is valid, when it comes back, the server needs to SIGN this token.
             // 2.2(a) for this, firt of all a SECURITY KEY need to be created

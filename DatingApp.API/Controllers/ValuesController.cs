@@ -10,7 +10,7 @@ using Microsoft.EntityFrameworkCore;
 namespace DatingApp.API.Controllers 
 {
     // POST http://localhost:5000/api/values/5
-    [Authorize]
+    // [Authorize] // Not required, because Authorize attribute is enabled for all controllers by default (within startup)
     [Route ("api/[controller]")]
     [ApiController]
     public class ValuesController : ControllerBase 
@@ -21,7 +21,8 @@ namespace DatingApp.API.Controllers
             _context = context;
         }
         // GET api/values
-        [AllowAnonymous]
+        [Authorize(Roles = "Admin")]
+        // [Authorize(Roles = "Admin, Moderator")] // Possible to grant access for multiple roles
         [HttpGet]
         public async Task<IActionResult> GetValues() 
         {
@@ -30,7 +31,7 @@ namespace DatingApp.API.Controllers
         }
 
         // GET api/values/5
-        [AllowAnonymous]
+        [Authorize(Roles = "Member")]
         [HttpGet ("{id}")]
         public async Task<IActionResult> GetValue(int id)
         {

@@ -73,6 +73,15 @@ namespace DatingApp.API
                         ValidateAudience = false
                     };
                 });
+
+            // Policy based authorization
+            services.AddAuthorization(options => 
+            {
+                options.AddPolicy("RequireAdminRole", policy => policy.RequireRole("Admin"));
+                options.AddPolicy("ModeratePhotoRole", policy => policy.RequireRole("Admin", "Moderator"));
+                options.AddPolicy("VipOnly", policy => policy.RequireRole("VIP"));
+                //options.AddPolicy("MaribelPolicy", policy => policy.RequireMyCustomPermission());
+            });
             
             // Configuration of MVC and other must-have services
             // Add options to require any request to be authenticated, rather than using [Authorize] attribute in every api controller
@@ -97,7 +106,7 @@ namespace DatingApp.API
             // services.AddScoped<IAuthRepository, AuthRepository>(); // Not required, because Identity is in use
             services.AddScoped<IDatingRepository, DatingRepository>();            
             services.AddScoped<LogUserActivity>();
-        }   
+        }                 
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app, IHostingEnvironment env, Seed seeder)

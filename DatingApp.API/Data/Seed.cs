@@ -15,9 +15,11 @@ namespace DatingApp.API.Data {
         // }
 
         private readonly UserManager<User> _userManager;
-        public Seed (UserManager<User> userManager) 
+        private readonly RoleManager<Role> _roleManager;
+        public Seed (UserManager<User> userManager, RoleManager<Role> roleManager) 
         {
             _userManager = userManager;            
+            _roleManager = roleManager;   
         }
 
         public void SeedUsers()
@@ -26,6 +28,21 @@ namespace DatingApp.API.Data {
             {
                 var userData = System.IO.File.ReadAllText("Data/UserSeedData.json");
                 var users = JsonConvert.DeserializeObject<List<User>>(userData);
+
+                var roles = new List<Role>()
+                {
+                    new Role { Name = "Member" },
+                    new Role { Name = "Admin" },
+                    new Role { Name = "Moderator" },
+                    new Role { Name = "VIP" }
+                };
+
+                foreach (var role in roles) 
+                {
+                    // Using Identity Method to create a new role
+                    _roleManager.CreateAsync(role).Wait(); // Use Wait(), because SeedUsers method returns void and it is not a async method
+                }
+
                 foreach (var user in users)
                 {
                     // Not nencessary to use own Verification method if Identity is in place
@@ -40,6 +57,20 @@ namespace DatingApp.API.Data {
 
                     // Using Identity Method to create a new user
                     _userManager.CreateAsync(user, "password").Wait(); // Use Wait(), because SeedUsers method returns void and it is not a async method
+                    _userManager.AddToRoleAsync(user, "Member").Wait();
+                }
+
+                var adminUser = new User
+                {
+                    UserName = "Admin"
+                };
+
+                IdentityResult result = _userManager.CreateAsync(adminUser, "password").Result;
+
+                if (result.Succeeded)
+                {
+                    var admin = _userManager.FindByNameAsync("Admin").Result;
+                    _userManager.AddToRolesAsync(admin, new[] { "Admin", "Moderator"}).Wait();
                 }
                 
                 // Not nencessary to use own Verification method if Identity is in place
